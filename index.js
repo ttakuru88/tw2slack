@@ -13,20 +13,59 @@ var twitterClient = new Twitter({
   access_token_secret: ''
 });
 
+aws.config.region = 'ap-northeast-1';
+var s3 = new aws.S3({ apiVersion: '2006-03-01' });
+
 exports.tw2slack = (event, context, callback) => {
-  twitterClient.get('search/tweets', {q: 'docbase lang:ja'}, function(error, tweets, response) {
-    for(let i=0; i<tweets.statuses.length; i++){
-      let tweet = tweets.statuses[i];
+  s3.getObject({
+    Bucket: 'tw2slack',
+    Key: 'max_tweet_id'
+  }, function(err, data) {
+    if(err) {
+      console.error(err);
+      context.done();
+    }
+    else {
+      var maxTweetId = parseInt(data.Body.toString());
+      var nextMaxTweetId = maxTweetId;
 
-      slack.webhook({
-        username: "@" + tweet.user.screen_name,
-        text: "```\n" + tweet.text + "\n```\nhttps://twitter.com/" + tweet.user.screen_name + '/status/' + tweet.id,
-        icon_emoji: tweet.user.profile_image_url_https
-      }, function(err, response) {
-        console.log(response);
+      console.log("maxTweetId: " + maxTweetId);
+
+      twitterClient.get('search/tweets', {q: 'docbase lang:ja exclude:retweets'}, function(error, tweets, response) {
+        for(let i=tweets.statuses.length-1; i>=0; i--){
+          let tweet = tweets.statuses[i];
+          if(tweet.id <= maxTweetId) {
+            continue;
+          }
+          if(nextMaxTweetId < tweet.id) {
+            nextMaxTweetId = tweet.id;
+          }
+
+          console.log("tweet2slack: " + tweet.id);
+
+          slack.webhook({
+            username: "@" + tweet.user.screen_name,
+            text: "```\n" + tweet.text + "\n```\nhttps://twitter.com/" + tweet.user.screen_name + '/status/' + tweet.id,
+            icon_emoji: tweet.user.profile_image_url_https
+          }, function(err, response) {
+            console.log(response);
+          });
+        }
+
+        console.log("nextMaxTweetId: " + nextMaxTweetId);
+
+        s3.putObject({
+          Bucket: 'tw2slack',
+          Key: 'max_tweet_id',
+          ContentType: 'text/plain',
+          Body: '' + nextMaxTweetId
+        }, function(err, data){
+          if (err) {
+            console.error(err);
+          }
+          context.done();
+        });
       });
-
-      break;
     }
   });
 };
