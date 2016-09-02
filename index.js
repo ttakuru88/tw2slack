@@ -26,7 +26,7 @@ exports.tw2slack = (event, context, callback) => {
       context.done();
     }
     else {
-      var maxTweetId = parseInt(data.Body.toString());
+      var maxTweetId = data.Body.toString();
       var nextMaxTweetId = maxTweetId;
 
       console.log("maxTweetId: " + maxTweetId);
@@ -34,18 +34,18 @@ exports.tw2slack = (event, context, callback) => {
       twitterClient.get('search/tweets', {q: 'docbase lang:ja exclude:retweets'}, function(error, tweets, response) {
         for(let i=tweets.statuses.length-1; i>=0; i--){
           let tweet = tweets.statuses[i];
-          if(tweet.id <= maxTweetId) {
+          if(tweet.id_str <= maxTweetId) {
             continue;
           }
-          if(nextMaxTweetId < tweet.id) {
-            nextMaxTweetId = tweet.id;
+          if(nextMaxTweetId < tweet.id_str) {
+            nextMaxTweetId = tweet.id_str;
           }
 
-          console.log("tweet2slack: " + tweet.id);
+          console.log("tweet2slack: " + tweet.id_str);
 
           slack.webhook({
             username: "@" + tweet.user.screen_name,
-            text: "```\n" + tweet.text + "\n```\nhttps://twitter.com/" + tweet.user.screen_name + '/status/' + tweet.id,
+            text: "```\n" + tweet.text + "\n```\nhttps://twitter.com/" + tweet.user.screen_name + '/status/' + tweet.id_str,
             icon_emoji: tweet.user.profile_image_url_https
           }, function(err, response) {
             console.log(response);
@@ -58,7 +58,7 @@ exports.tw2slack = (event, context, callback) => {
           Bucket: 'tw2slack',
           Key: 'max_tweet_id',
           ContentType: 'text/plain',
-          Body: '' + nextMaxTweetId
+          Body: nextMaxTweetId
         }, function(err, data){
           if (err) {
             console.error(err);
