@@ -1,10 +1,10 @@
 'use strict';
-let exec = require('child_process').exec;
+var aws = require('aws-sdk')
 var Twitter = require('twitter');
 var Slack = require('slack-node');
 
-slack = new Slack();
-slack.setWebhook('https://hooks.slack.com/services/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');
+var slack = new Slack();
+slack.setWebhook('https://hooks.slack.com/services/');
 
 var twitterClient = new Twitter({
   consumer_key: '',
@@ -14,22 +14,19 @@ var twitterClient = new Twitter({
 });
 
 exports.tw2slack = (event, context, callback) => {
-    if (!event.cmd) {
-        return callback('Please specify a command to run as event.cmd');
+  twitterClient.get('search/tweets', {q: 'docbase lang:ja'}, function(error, tweets, response) {
+    for(let i=0; i<tweets.statuses.length; i++){
+      let tweet = tweets.statuses[i];
+
+      slack.webhook({
+        username: "@" + tweet.user.screen_name,
+        text: "```\n" + tweet.text + "\n```\nhttps://twitter.com/" + tweet.user.screen_name + '/status/' + tweet.id,
+        icon_emoji: tweet.user.profile_image_url_https
+      }, function(err, response) {
+        console.log(response);
+      });
+
+      break;
     }
-    const child = exec(event.cmd, (error) => {
-        // Resolve with result of process
-        callback(error, 'Process complete!');
-    });
-
-    slack.webhook({
-      username: "webhookbot",
-      text: "Test1."
-    }, function(err, response) {
-      console.log(response);
-    });
-
-    // Log process stdout and stderr
-    child.stdout.on('data', console.log);
-    child.stderr.on('data', console.error);
+  });
 };
