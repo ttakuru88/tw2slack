@@ -29,53 +29,61 @@ exports.tw2slack = (event, context, callback) => {
     else {
       var maxTweetId = data.Body.toString()
       var nextMaxTweetId = maxTweetId
-      var newTweets = []
 
       console.log(`maxTweetId: ${maxTweetId}`)
 
+      var attachments = []
       twitterClient.get('search/tweets', {q: 'docbase lang:ja exclude:retweets'}, (error, tweets, response) => {
         for(let i=tweets.statuses.length-1; i>=0; i--){
           let tweet = tweets.statuses[i]
 
-          if(tweet.id_str <= maxTweetId) {
+          if(tweet.id_str.length < maxTweetId.length || tweet.id_str <= maxTweetId) {
             continue
           }
-          if(nextMaxTweetId < tweet.id_str) {
-            nextMaxTweetId = tweet.id_str
+          nextMaxTweetId = tweet.id_str
+
+          let tweetUrl = `https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`
+          let attachment = {
+            fallback: tweet.text,
+            text: tweet.text,
+            title: tweetUrl,
+            title_link: tweetUrl,
+            author_name: `@${tweet.user.screen_name}`,
+            author_link: `https://twitter.com/${tweet.user.screen_name}`,
+            author_icon: tweet.user.profile_image_url_https,
+          }
+          if(tweet.entities.media) {
+            attachment.image_url = `${tweet.entities.media[0].media_url_https}:small`
+            attachment.thumb_url = `${tweet.entities.media[0].media_url_https}:thumb`
           }
 
-          newTweets.push(tweet)
+          attachments.push(attachment)
         }
 
-        console.log(`nextMaxTweetId: ${nextMaxTweetId}`)
+        slack.webhook({
+          username: 'Twitter',
+          text: '',
+          icon_emoji: 'https://s3-ap-northeast-1.amazonaws.com/tw2slack/twitter_l.png',
+          attachments: attachments
+        }, (err, response) => {
+          if(err) {
+            console.error(err)
+            context.done()
+          }
 
-        var tweetedCount = 0;
-        for(let i=0; i<newTweets.length; i++){
-          let tweet = newTweets[i]
-          let tweetUrl = `https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`
-          console.log(`tweet2slack: ${tweetUrl}`)
-
-          slack.webhook({
-            username: `@${tweet.user.screen_name}`,
-            text: `\`\`\`\n${tweet.text}\n\`\`\`\n${tweetUrl}`,
-            icon_emoji: tweet.user.profile_image_url_https
-          }, (err, response) => {
-            tweetedCount++
-            if(tweetedCount >= newTweets.length){
-              s3.putObject({
-                Bucket: 'tw2slack',
-                Key: 'max_tweet_id',
-                ContentType: 'text/plain',
-                Body: nextMaxTweetId
-              }, (err, data) => {
-                if (err) {
-                  console.error(err)
-                }
-                context.done()
-              })
+          console.log(`nextMaxTweetId: ${nextMaxTweetId}`)
+          s3.putObject({
+            Bucket: 'tw2slack',
+            Key: 'max_tweet_id',
+            ContentType: 'text/plain',
+            Body: nextMaxTweetId
+          }, (err, data) => {
+            if (err) {
+              console.error(err)
             }
+            context.done()
           })
-        }
+        })
       })
     }
   })
