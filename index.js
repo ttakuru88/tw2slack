@@ -37,7 +37,7 @@ exports.tw2slack = (event, context, callback) => {
         for(let i=tweets.statuses.length-1; i>=0; i--){
           let tweet = tweets.statuses[i]
 
-          if(tweet.id_str.length < maxTweetId.length || tweet.id_str <= maxTweetId) {
+          if(tweet.id_str.length < maxTweetId.length || tweet.id_str.length == maxTweetId.length && tweet.id_str <= maxTweetId) {
             continue
           }
           nextMaxTweetId = tweet.id_str
