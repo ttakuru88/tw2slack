@@ -5,7 +5,7 @@ var Twitter = require('twitter')
 var Slack = require('slack-node')
 
 var slack = new Slack();
-slack.setWebhook('https://hooks.slack.com/services/')
+slack.setWebhook(process.env['SLACK_WEBHOOK_URL'])
 
 var twitterClient = new Twitter({
   consumer_key: process.env['TW_CONSUMER_KEY'],
