@@ -9,7 +9,6 @@
   "author": "",
   "private": true,
   "dependencies": {
-    "aws-sdk": "^2.5.5",
     "slack-node": "^0.2.0",
     "twitter": "^1.4.0"
   }
