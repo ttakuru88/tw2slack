@@ -8,10 +8,10 @@ var slack = new Slack();
 slack.setWebhook('https://hooks.slack.com/services/')
 
 var twitterClient = new Twitter({
-  consumer_key: '',
-  consumer_secret: '',
-  access_token_key: '',
-  access_token_secret: ''
+  consumer_key: process.env['TW_CONSUMER_KEY'],
+  consumer_secret: process.env['TW_CONSUMER_SECRET'],
+  access_token_key: process.env['TW_ACCESS_TOKEN'],
+  access_token_secret: process.env['TW_ACCESS_TOKEN_SECRET']
 })
 
 aws.config.region = 'ap-northeast-1';
